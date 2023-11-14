@@ -30,9 +30,10 @@ plot_IND <-
   scale_y_continuous(limits=c(0,60))+
   ylab("17-OHPC Concentration (ng/mL)")+
   xlab("Time (days)")+
-  theme_cowplot()+
+  #theme_cowplot()+
   ggtitle("Data Exploration", subtitle="Linear Scale")
 plot_IND
+ggsave("OPRU_PK_Day1_7_Linear.png", plot_IND, height=8, width=8, dpi=200)
 #ID 57 and 52 look best
 
 #Data Exploration By ID-Log Scale
@@ -45,6 +46,8 @@ plot_IND_log <-
   scale_x_continuous(limits=c(0,8))+
   ylab("17-OHPC Concentration (ng/mL)")+
   xlab("Time (days)")+
-  theme_cowplot()+
+  #theme_cowplot()+
   ggtitle("Data Exploration", subtitle="Log10 Scale")
 plot_IND_log
+
+ggsave("OPRU_PK_Day1_7_Log.png", plot_IND_log, height=8, width=8, dpi=200)
