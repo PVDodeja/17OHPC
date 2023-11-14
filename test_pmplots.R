@@ -19,8 +19,9 @@ df<- df %>%  rename ("ID"= "ID_Flagged") #rename ID_Flagged to ID for pmplots
 df_SingleGA<- filter(df, INDEX< 20000)
 df_SingleGA<-filter(df_SingleGA, DV!=0)
 df_MultiGA<-filter(df, INDEX>20000)
+df_MultiGA<-filter(df_MultiGA, DV!=0)
 
 
 dv_time(df_SingleGA) #+ facet_wrap(~ID, scales="free_x")
-dv_time(df_SingleGA, yname="17OHPC Plasma Concentrations (ng/mL)", log=TRUE) + facet_wrap(~ID)
-dv_time(df_MultiGA)
+dv_time(df_SingleGA, yname="17OHPC Plasma Concentrations (ng/mL)", log=TRUE)+ facet_wrap(~ID)
+dv_time(df_MultiGA, yname="17OHPC Plasma Concentrations (ng/mL)", log=TRUE)+ facet_wrap(~ID)
