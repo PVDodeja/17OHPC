@@ -15,15 +15,19 @@ library(gridExtra)
 library(GGally)
 library(ggpmisc)
 #load source data
-setwd("E:/PHD/17OHPC/Prerna/Datasets/MFMU")
+setwd("E:/PHD/17OHPC/Prerna/Datasets/OPRC_250_500")
 getwd()
-d1<-  read.csv("DataExplore_MFMU.csv")
-d1_test<- d1 %>% mutate_at(1:20, as.numeric)
+d1<-  read.csv("OPRU_PD_Data_Subset_Clean.csv") %>% select(-c(2)) # dropping the STUDY ID Column
+d1_test<- d1 %>% mutate_at(1:23, as.numeric) #convert all to numeric
+
+d1_quant<- d1_test %>% select(c(1,2, 4, 16:19)) %>% group_by(HPC_QUART)
 
 #how is the data distributed
-quantile(d1_test$CAP1, na.rm=TRUE)
-quantile(d1_test$CAP2, na.rm=TRUE)
-Q <- unname(quantile(d1_test$CAP2, na.rm=TRUE))
+quantile(d1_test$OHPC_26_30WK, na.rm=TRUE)
+quantile(d1_test$LOG_OHPC_26_30WK, na.rm=TRUE)
+
+
+
 # Function for scatter plots
 plot_scatter<-function(data_for_plot, biom, conc)
 {
@@ -54,7 +58,8 @@ plot_box<-function(data_for_plot, cont)
 plot_hist<-function(data_for_plot, cont)
 {
   p2<- ggplot(data_for_plot, aes({{cont}}))+
-    geom_histogram(binwidth=0.5)+theme_cowplot()
+    scale_x_binned()+
+    geom_bar()
   p2
 }
 
@@ -70,7 +75,10 @@ plot_OHP2<- plot_OHP2+ geom_boxplot()+theme_cowplot()
 
 
 
-
+#Pair Plot for Continuous Demographic Variables
+contCovarList<- c('MAT_AGE','BMI')
+ContVCont1= d1_test %>% pairs_plot(y=contCovarList)+ rot_x(50)
+ContVCont1
 
 #looking at RACE as a factor on OHP concentrations?
 d1_test$RACE <- as.factor(d1_test$RACE)
@@ -87,7 +95,7 @@ categorical<- ggarrange(plot_OHP1, plot_OHP2, plot_race1, plot_race2 + rremove("
 categorical<- annotate_figure(categorical,top = text_grob("PARITY & RACE: Impact on HPC Conc", color = "red", face = "bold", size = 14))
 ggsave("RACE_PARITY_OHP1_OHP2.pdf", categorical, width=8, height=6)
 #Call scatter
-plot_scatter(d1_test, OHP1, OHP2)
+
 plot_scatter(d1_test, CAP1, OHP1)
 plot_scatter(d1_test, CAP2, OHP2)
 
@@ -96,15 +104,15 @@ plot_scatter(d1_test, CRP2, CAP2)
 plot_scatter(d1_test, CRH1, CAP1)
 
 #Call function
-plot_hist(d1_test, RACE)
-plot_box(d1_test, GAVISIT)
+plot_hist(d1_test, GESTAGE_PTB)
+plot_hist(d1_test, OHPC_26_30WK)
 
 
 #Callfunction
 plot_box(d1_test, BMI)
 
 
-plot_quantile(d1_test, GATEST1, CAP1)
+plot_scatter(d1_test, OHPC_26_30WK, GESTAGE_PTB)
 plot_quantile(d1_test, GATEST2, CAP2)
 plot_quantile(d1_test, CRH2, CAP2)
 plot_quantile(d1_test, PROG1, CAP1)
