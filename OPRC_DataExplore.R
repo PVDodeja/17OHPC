@@ -1,4 +1,4 @@
-#Data Exploration MFMU
+#Data Exploration OPRC
 #clear all previous activity in the workspace
 rm(list=ls(all.names=TRUE)) 
 
@@ -32,13 +32,13 @@ plot_scatter<-function(data_for_plot, biom, conc)
   p3+theme_cowplot()
 }
 # Function for quantile plots
-q5<- c(0, 0.25,0.5,0.75,0.1)
+Q<- c(0.25,0.5,0.75,1.00)
 plot_quantile<-function(data_for_plot, biom, conc)
-  {
-    p1<- ggplot(data_for_plot, aes({{biom}}, {{conc}}))+
-  geom_point()+
+{
+  p1<- ggplot(data_for_plot, aes({{biom}}, {{conc}}))+
+    geom_point()+
     scale_y_continuous(limits=c(0,20), n.breaks=15)
-     p1+ geom_quantile(quantiles=Q, colour = "blue", linewidth =1, linetype="dashed" ,alpha = 0.5)+theme_cowplot()
+  p1+ geom_quantile(quantiles=Q, colour = "blue", linewidth =1, linetype="dashed" ,alpha = 0.5)+theme_cowplot()
 }
 
 # Function for boxplots
@@ -46,7 +46,7 @@ plot_box<-function(data_for_plot, cont)
 {
   p1<- ggplot(data_for_plot, aes({{cont}}))+
     geom_boxplot()+theme_cowplot()
-    p1
+  p1
 }
 
 
@@ -68,10 +68,7 @@ plot_OHP1<- plot_OHP1+ geom_boxplot()+theme_cowplot()
 plot_OHP2<- ggplot(d1_test, aes(x=PARITY, y=OHP2))
 plot_OHP2<- plot_OHP2+ geom_boxplot()+theme_cowplot()
 
-# parity_as_factor<- ggarrange(plot_OHP1, plot_OHP2 + rremove("x.text"), 
-#                   labels = c("A", "B"),
-#                   ncol = 2, nrow = 1)
-# parity_as_factor
+
 
 
 
@@ -85,8 +82,8 @@ plot_race2<- ggplot(d1_test, aes(x=RACE, y=OHP2))
 plot_race2<- plot_race2+ geom_boxplot()+theme_cowplot()
 
 categorical<- ggarrange(plot_OHP1, plot_OHP2, plot_race1, plot_race2 + rremove("x.text"), 
-                             labels = c("A", "B", "C", "D"),
-                             ncol = 2, nrow = 2)
+                        labels = c("A", "B", "C", "D"),
+                        ncol = 2, nrow = 2)
 categorical<- annotate_figure(categorical,top = text_grob("PARITY & RACE: Impact on HPC Conc", color = "red", face = "bold", size = 14))
 ggsave("RACE_PARITY_OHP1_OHP2.pdf", categorical, width=8, height=6)
 #Call scatter
@@ -107,21 +104,24 @@ plot_box(d1_test, GAVISIT)
 plot_box(d1_test, BMI)
 
 
-plot_quantile(d1_test, GATEST1, OHP1)
-plot_quantile(d1_test, GATEST2, OHP2)
+plot_quantile(d1_test, GATEST1, CAP1)
+plot_quantile(d1_test, GATEST2, CAP2)
+plot_quantile(d1_test, CRH2, CAP2)
+plot_quantile(d1_test, PROG1, CAP1)
+plot_quantile(d1_test, PROG2, CAP2)
 
-CRP<- plot_quantile(d1_test, CRP2, CAP1)
+CRP<- plot_quantile(d1_test, CRP1, CAP1)
 CRP
 ggsave("CRP_CAP.png", CRP, width=6, height=5)
- 
- #CRP and OHP
+
+#CRP and OHP
 cr_ohp1<- plot_quantile(d1_test, CRP1, OHP1)
 cr_ohp2 <-plot_quantile(d1_test, CRP2, OHP1)
 cr_ohp3<-plot_quantile(d1_test, CRP1, OHP2)
 cr_ohp4 <-plot_quantile(d1_test, CRP2, OHP2)
 plot1<- ggarrange(cr_ohp1, cr_ohp2, cr_ohp3, cr_ohp4 + rremove("x.text"), 
-              labels = c("A", "B", "C", "D"),
-              ncol = 2, nrow = 2)
+                  labels = c("A", "B", "C", "D"),
+                  ncol = 2, nrow = 2)
 plot1
 ggsave("CRP_OHP.pdf", plot1, width=8, height=6)
 
@@ -141,8 +141,8 @@ prog2<- plot_quantile(d1_test, PROG2, OHP1)
 prog3<- plot_quantile(d1_test, PROG1, OHP2)
 prog4<- plot_quantile(d1_test, PROG2, OHP2)
 plot3<- ggarrange(prog1, prog2, prog3, prog4 + rremove("x.text"), 
-          labels = c("A", "B", "C", "D"),
-          ncol = 2, nrow = 2)
+                  labels = c("A", "B", "C", "D"),
+                  ncol = 2, nrow = 2)
 plot3
 ggsave("PROG_OHP.pdf", plot3, width=8, height=6)
 # contCovarList1<- c('AGE','BMI','WT','HEIGHT')
