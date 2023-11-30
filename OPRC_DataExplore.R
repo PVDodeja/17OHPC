@@ -1,4 +1,8 @@
 #Data Exploration OPRC
+#https://finchstudio.io/blog/exposure-response-plots/
+#https://opensource.nibr.com/xgx/Multiple_Ascending_Dose_PKPD_continuous.html
+
+
 #clear all previous activity in the workspace
 rm(list=ls(all.names=TRUE)) 
 
@@ -14,17 +18,90 @@ library(cowplot)
 library(gridExtra)
 library(GGally)
 library(ggpmisc)
+library(binom) 
 #load source data
 setwd("E:/PHD/17OHPC/Prerna/Datasets/OPRC_250_500")
 getwd()
 d1<-  read.csv("OPRU_PD_Data_Subset_Clean.csv") %>% select(-c(2)) # dropping the STUDY ID Column
 d1_test<- d1 %>% mutate_at(1:23, as.numeric) #convert all to numeric
 
-d1_quant<- d1_test %>% select(c(1,2, 4, 16:19)) %>% group_by(HPC_QUART)
+d1_quant<- d1_test %>% select(c(1,2, 4, 16:23)) %>% group_by(HPC_QUART)
 
 #how is the data distributed
-quantile(d1_test$OHPC_26_30WK, na.rm=TRUE)
+breaks <- quantile(d1_test$OHPC_26_30WK, na.rm=TRUE)
 quantile(d1_test$LOG_OHPC_26_30WK, na.rm=TRUE)
+
+#Partitioning the concentrations into quartiles and summarize
+# Use cut function to place each subjects exposure into the correct bin
+d1_quant <- d1_quant %>%
+  mutate(quantile = cut(OHPC_26_30WK, breaks, include.lowest = TRUE))
+
+
+#summarize and calculate median concentration for each quantile
+summary_data<- function(data_for_summarize, response, response_n, response_perc)
+  {
+  
+  sum1<- data_for_summarize %>%
+  group_by(quantile) %>%
+  summarise(median_data = median(OHPC_26_30WK),  
+              n = n(),
+             response_n = sum({{response_n}}),
+             response_perc = sum({{response_perc}}/n()*100),
+           ci = binom.confint(sum({{response}}), n(),
+                               conf.level = 0.95, methods = "exact"))
+print(sum1)
+}
+
+summary_data(d1_quant, PTB32, PTB32_n, PTB32_perc)
+
+#Conc-Response Quantile Plot
+plot_quant<- function(data_for_plot, conc, response)
+{
+  ggplot({{data_for_plot}}, aes(x = {{conc}}, y = {{response}})) +
+  geom_col(aes(fill = "purple4"), alpha = 0.6) +
+  geom_text(aes(label = paste0("(",PTB37_n,"/", n, ")")), vjust = -0.5, color = "grey30", size = 3,
+            position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = paste0(round(PTB37_perc,1),"%")), vjust = -1.9, color = "grey30", size = 3,
+            position = position_dodge(width = 0.9)) +
+  labs(x = "OHPC Ctrough Quantile (ng/mL)",
+       #y = "",
+       title = "OHPC Ctrough Quantile Plot",)+
+       #subtitle = paste(n_quantile, "Bins") ) +
+  scale_y_continuous(limits = c(0, 100), breaks=c(seq(0,100,25))) +
+  scale_fill_manual(values = c( "purple4", "grey20")) + theme_cowplot()+
+  guides(fill = "none")
+}
+
+PTB1<- plot_quant(summary, quantile, PTB37_perc)
+ggsave("OHPC_Quantile_PTB37Wk.png", PTB1, height=4, width=5)
+
+
+# Exposure Response Logistic Regression Plot
+logit_plot <- ggplot(summary, aes(x = median_OHPC_26_30WK, y = PTB37_perc/100)) +
+  geom_point() +
+  geom_errorbar(aes(ymax = ci$upper, ymin = ci$lower)) +
+  geom_jitter(data = d1_quant,
+              aes(x = OHPC_26_30WK,y=PTB37, color = HPC_QUART),
+              height = 0.05,
+              alpha = 0.5) +
+  geom_smooth(data = d1_quant,
+              aes(x = OHPC_26_30WK,y =PTB37),
+              color = "blue",
+              method = "glm",
+              method.args = list(family = "binomial")) + theme_cowplot()+
+  labs(x= "17OHPC Ctrough (ng/mL)", y = "Probability of PTB at 37 Weeks") 
+  #scale_x_continuous(limits= c(-1, 125))
+logit_plot
+ggsave("Logit_MedianOHPC_PTB37.png", logit_plot, height=4, width=6)
+
+# # Summary plot of exposures
+# exposure_plot <- ggplot(summary, aes(x = median_OHPC_26_30WK), fill = DOSE, color = DOSE) +
+#   #facet_wrap(~DOSE)+
+#   geom_point()+
+#  # scale_x_binned() +
+#   labs(x= "OHPC Ctrough (ng/mL)", y ="Gestational Age" ) +
+#   guides(color = "none", fill = "none")
+# exposure_plot
 
 
 
