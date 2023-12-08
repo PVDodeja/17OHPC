@@ -28,8 +28,24 @@ d1_test<- d1 %>% mutate_at(1:23, as.numeric) #convert all to numeric
 d1_quant<- d1_test %>% select(c(1,2, 4, 16:23)) %>% group_by(HPC_QUART)
 
 #how is the data distributed
-breaks <- quantile(d1_test$OHPC_26_30WK, na.rm=TRUE)
-quantile(d1_test$LOG_OHPC_26_30WK, na.rm=TRUE)
+#test quantile groups
+# Update n_quantile and rerun to view ER plot with different number of quantiles
+n_quantile <- 4
+step <- 1/n_quantile
+quantiles <- seq(0, 1, step)
+print(quantiles)
+## [1] 0.00 0.25 0.50 0.75 1.00
+
+
+# Define exposure cutoffs
+breaks <- quantile(d1_quant$OHPC_26_30WK, probs=quantiles, na.rm=TRUE)
+print(breaks)
+
+# Use cut function to place each subjects exposure into the correct bin
+d1_active <- d1_quant %>%
+  mutate(quantile = cut(OHPC_26_30WK, breaks, include.lowest = TRUE))
+
+
 
 #Partitioning the concentrations into quartiles and summarize
 # Use cut function to place each subjects exposure into the correct bin
@@ -38,21 +54,21 @@ d1_quant <- d1_quant %>%
 
 
 #summarize and calculate median concentration for each quantile
-summary_data<- function(data_for_summarize, response, response_n, response_perc)
-  {
-  
-  sum1<- data_for_summarize %>%
+#summary_data<- function(data_for_summarize, response)
+#{
+sum1<- d1_active%>%
   group_by(quantile) %>%
   summarise(median_data = median(OHPC_26_30WK),  
-              n = n(),
-             response_n = sum({{response_n}}),
-             response_perc = sum({{response_perc}}/n()*100),
-           ci = binom.confint(sum({{response}}), n(),
-                               conf.level = 0.95, methods = "exact"))
+            n = n())
+#ci= CI_t(d1_active$CAP1, ci=0.95)
+ #response_n = sum(PTB),
+#response_perc = sum(CAP1/n()*100),
+# ci = binom.confint(sum(CAP1), n(),
+# conf.level = 0.95)) #cannot use discrete probability distribution for continuous data
 print(sum1)
-}
 
-summary_data(d1_quant, PTB32, PTB32_n, PTB32_perc)
+d1_active_1 <- inner_join(d1_active, sum1, by="quantile")# append datasets
+
 
 #Conc-Response Quantile Plot
 plot_quant<- function(data_for_plot, conc, response)
@@ -89,7 +105,7 @@ logit_plot <- ggplot(summary, aes(x = median_OHPC_26_30WK, y = PTB37_perc/100)) 
               color = "blue",
               method = "glm",
               method.args = list(family = "binomial")) + theme_cowplot()+
-  labs(x= "17OHPC Ctrough (ng/mL)", y = "Probability of PTB at 37 Weeks") 
+  labs(x= "17OHPC Median Ctrough (ng/mL)", y = "Probability of PTB at 37 Weeks") 
   #scale_x_continuous(limits= c(-1, 125))
 logit_plot
 ggsave("Logit_MedianOHPC_PTB37.png", logit_plot, height=4, width=6)
@@ -106,12 +122,51 @@ ggsave("Logit_MedianOHPC_PTB37.png", logit_plot, height=4, width=6)
 
 
 # Function for scatter plots
+
+# Function for scatter plots
 plot_scatter<-function(data_for_plot, biom, conc)
 {
   p3<- ggplot(data_for_plot, aes({{biom}}, {{conc}}))+
-    geom_point()
+    geom_point()+
+    labs(x= "17OHPC Plasma Concentration (ng/mL)", y = "Gestational Age at Preterm Birth") 
+    #geom_smooth(method = "lm", se = FALSE)+
+    #stat_cor(label.x = 20, label.y = 250) 
+  # abline(lm(conc~ biom, data = data_for_plot), col = "blue")
   p3+theme_cowplot()
 }
+
+
+p3<- ggplot(d1_active_1, aes(x=OHPC_26_30WK, y=GESTAGE_PTB, color=quantile))+
+  geom_point()+
+  labs(x= "17OHPC Plasma Concentration (ng/mL)", y = "Gestational Age at Preterm Birth") 
+#geom_smooth(method = "lm", se = FALSE)+
+#stat_cor(label.x = 20, label.y = 250) 
+# abline(lm(conc~ biom, data = data_for_plot), col = "blue")
+p3+theme_cowplot()
+
+p<- plot_scatter(d1_active_1, OHPC_26_30WK, GESTAGE_PTB)
+ggsave("GESTAGE_PTB_OHPC_Scatter_Color.png", height=4, width=6)
+
+
+logit_plot <- ggplot(d1_active_1, aes(x= GESTAGE_PTB, y = quantile))+
+  geom_boxplot()+theme_cowplot()+
+  #geom_line(data=sum1, aes(x=median_data))+
+  # geom_errorbar(aes(ymax = ci$upper, ymin = ci$lower)) +
+  # geom_jitter(data = d1_quant,
+  # aes(x = OHPC_26_30WK,y=PTB37, color = HPC_QUART),
+  # height = 0.05,
+  # alpha = 0.5) +
+  # #geom_smooth(data = d1_quant,
+  #             aes(x = OHPC_26_30WK,y =PTB37),
+  #             color = "blue",
+  #             method = "glm",
+  #             method.args = list(family = "binomial")) + theme_cowplot()+
+  labs(x= "Gestational Age at PTB", y = "HPC Ctrough Quantile")
+#scale_y_continuous(limits=c(0,280),breaks=seq(0,250,80))
+logit_plot
+ggsave("SummaryPlot_GAPTB_HPC_5Quant.png", logit_plot, height=4, width=6)
+
+
 # Function for quantile plots
 Q<- c(0.25,0.5,0.75,1.00)
 plot_quantile<-function(data_for_plot, biom, conc)
